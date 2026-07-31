@@ -29,3 +29,25 @@ Récapitulatif des lumières disponibles en Three.js / React Three Fiber (`<xxxL
 | Rect Area | `<rectAreaLight>` | Émet depuis une surface rectangulaire plate, dans une seule direction (axe -Z local). Nécessite `RectAreaLightUniformsLib.init()`. | Néon, panneau lumineux, enseigne de vitrine — utilisé dans `LightEmpty.jsx` pour l'éclairage de la devanture. |
 
 **Source** : [Three.js Manual — Lights](https://threejs.org/manual/#en/lights) et [Three.js Docs — Light](https://threejs.org/docs/#api/en/lights/Light)
+
+## Post-processing
+
+Le post-processing applique des effets visuels sur l'image déjà rendue de la scène (après le rendu 3D principal), plutôt que sur les objets eux-mêmes. Objectif : améliorer le rendu ou ajouter des effets artistiques (halo lumineux, flou, grain...).
+
+**Doc** :
+- Wrapper React : https://github.com/pmndrs/react-postprocessing
+- Librairie sous-jacente : https://github.com/pmndrs/postprocessing
+
+### Choix parmi les effets du cours
+
+| Effet | Comportement | Pertinent ici ? |
+|---|---|---|
+| **Bloom** | Halo lumineux sur les zones dépassant un seuil de luminance | ✅ Retenu — objectif Séance 2 : faire "déborder" la lumière de la devanture |
+| Depth of Field | Flou selon la profondeur (plan net vs flou) | Non lié à l'objectif lumière |
+| Vignette | Assombrit les bords de l'écran | Effet cosmétique, pas lié à la lumière |
+| Noise | Grain façon pellicule | Effet cosmétique |
+| Chromatic Aberration | Séparation des couleurs sur les bords | Effet cosmétique |
+
+**Recommandation retenue : Bloom**, cohérent avec l'objectif de `CONSIGNE_TP.md` Séance 2.
+
+⚠ **Limite connue** : `rectAreaLight` (utilisée dans `LightEmpty.jsx`) n'a pas de géométrie propre — elle éclaire les surfaces autour d'elle, mais Bloom seuille sur la luminance des pixels rendus. Bloom fera donc briller la devanture éclairée, pas la source de lumière elle-même (à moins d'ajouter un mesh émissif co-localisé plus tard).
