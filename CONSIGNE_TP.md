@@ -1,5 +1,7 @@
 # TP : Intégration de Modèles 3D avec React Three Fiber
 
+## Séance 1
+
 ## Objectifs
 
 Créer une application React utilisant **@react-three/fiber** et **@react-three/drei** pour afficher et animer des modèles 3D (fichiers .glb).
@@ -77,4 +79,68 @@ src/
 - ✅ Interaction au clic fonctionnelle
 - ✅ Code organisé et réutilisable
 - ✅ (Bonus) Écran de chargement avec préchargement
+
+## Séance 2
+
+### Post-Processing
+*Développement Front — François Gillet*
+
+#### Qu'est-ce que le Post-Processing ?
+- Le post-processing, c'est l'ensemble des effets visuels appliqués à la scène 3D après son rendu principal.
+- Objectif :
+  - Améliorer le rendu visuel
+  - Ajouter des effets réalistes ou artistiques
+
+#### `@react-three/postprocessing`
+- Wrapper React pour la librairie `postprocessing`
+- ⚠ Nécessite WebGL2 → bien utiliser un navigateur compatible
+- Ne pas combiner avec `shadows="soft"` de drei (incompatibilité WebGL2)
+- https://github.com/pmndrs/react-postprocessing
+
+Installer postprocessing :
+```bash
+npm install @react-three/postprocessing postprocessing
+```
+
+#### Effets de post-processing courants
+- **Bloom** : halo lumineux autour des zones brillantes
+- **Depth of Field** : flou de mise au point, zone nette
+- **Vignette** : assombrit les bords pour concentrer le regard
+- **Noise (Grain)** : ajoute du grain, effet cinéma vintage
+- **Chromatic Aberration** : légère séparation des couleurs, effet lentille
+
+#### Utiliser un effet post-processing
+
+Import :
+```jsx
+import { EffectComposer, DepthOfField } from '@react-three/postprocessing'
+```
+
+- `<EffectComposer>` : conteneur des effets
+- `<DepthOfField />` : simule une mise au point sur un plan précis de la scène
+
+#### Intégration dans la scène
+
+Exemple de scène avec postprocessing :
+```jsx
+<Canvas>
+  <EffectComposer>
+    <DepthOfField
+      focusDistance={0.02}
+      focalLength={0.03}
+      bokehScale={2}
+    />
+  </EffectComposer>
+</Canvas>
+```
+
+- `focusDistance` : distance du plan net
+- `focalLength` : profondeur de la zone nette
+- `bokehScale` : intensité du flou
+
+### TD – Installer et intégrer postprocessing
+- Installer et intégrer postprocessing avec au moins un effet (Bloom, DepthOfField…).
+- Si ce n'est pas déjà fait :
+  - Ajoutez un contrôleur LEVA
+  - Déployer le projet sur Netlify et envoyer le projet à francois.gillet@vacataire.unc.nc
 
