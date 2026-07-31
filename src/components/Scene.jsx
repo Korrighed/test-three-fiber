@@ -1,6 +1,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useControls, folder } from 'leva';
 import { Environment } from './Environment';
 import { AnimatedModel } from './AnimatedModel';
@@ -47,7 +48,33 @@ function SceneContent() {
     cPosX, cPosY, cPosZ, cFov,
     mtPosX, mtPosY, mtPosZ, mtShowHelper,
     lPosX, lPosY, lPosZ, lRotX, lRotY, lRotZ, lWidth, lHeight, lShowHelper,
+    bEnabled, bIntensity, bLuminanceThreshold, bLuminanceSmoothing, bMipmapBlur, bRadius,
   } = useControls({
+    LightEmpty: folder({
+      Position: folder({
+        lPosX: { value: 172, min: -500, max: 500, step: 1 },
+        lPosY: { value: 340, min: -500, max: 500, step: 1 },
+        lPosZ: { value: -228, min: -500, max: 500, step: 1 },
+      }),
+      Rotation: folder({
+        lRotX: { value: -68, min: -360, max: 360, step: 1 },
+        lRotY: { value: 360, min: -360, max: 360, step: 1 },
+        lRotZ: { value: 3, min: -360, max: 360, step: 1 },
+      }),
+      Size: folder({
+        lWidth: { value: 265, min: 1, max: 300, step: 1 },
+        lHeight: { value: 29, min: 1, max: 300, step: 1 },
+      }),
+      lShowHelper: { value: true },
+    }),
+    Bloom: folder({
+      bEnabled: { value: true }, // monte/demonte <EffectComposer> entierement
+      bIntensity: { value: 2.8, min: 0, max: 10, step: 0.1 }, // force du halo ajoute
+      bLuminanceThreshold: { value: 0.83, min: 0, max: 1, step: 0.01 }, // luminance mini d'un pixel pour declencher le bloom
+      bLuminanceSmoothing: { value: 0.765, min: 0, max: 1, step: 0.01 }, // adoucit la transition autour du seuil (evite un bord dur)
+      bMipmapBlur: { value: false }, // flou via mipmaps (moins couteux, plus doux) vs flou gaussien classique
+      bRadius: { value: 0.63, min: 0, max: 1, step: 0.01 }, // etalement/portee du flou du halo
+    }),
     Environment: folder({
       ePosX: { value: 0, min: -500, max: 500, step: 1 },
       ePosY: { value: 0, min: -500, max: 500, step: 1 },
@@ -72,23 +99,6 @@ function SceneContent() {
       mtPosZ: { value: -340, min: -500, max: 500, step: 1 },
       mtShowHelper: { value: true },
     }),
-    LightEmpty: folder({
-      Position: folder({
-        lPosX: { value: 172, min: -500, max: 500, step: 1 },
-        lPosY: { value: 340, min: -500, max: 500, step: 1 },
-        lPosZ: { value: -228, min: -500, max: 500, step: 1 },
-      }),
-      Rotation: folder({
-        lRotX: { value: -68, min: -360, max: 360, step: 1 },
-        lRotY: { value: 360, min: -360, max: 360, step: 1 },
-        lRotZ: { value: 3, min: -360, max: 360, step: 1 },
-      }),
-      Size: folder({
-        lWidth: { value: 265, min: 1, max: 300, step: 1 },
-        lHeight: { value: 29, min: 1, max: 300, step: 1 },
-      }),
-      lShowHelper: { value: true },
-    }),
   });
 
   return (
@@ -109,6 +119,18 @@ function SceneContent() {
       <directionalLight position={[10, 10, 10]} intensity={1} />
 
       <OrbitControls target={[mtPosX, mtPosY, mtPosZ]} />
+
+      {bEnabled && (
+        <EffectComposer>
+          <Bloom
+            intensity={bIntensity}
+            luminanceThreshold={bLuminanceThreshold}
+            luminanceSmoothing={bLuminanceSmoothing}
+            mipmapBlur={bMipmapBlur}
+            radius={bRadius}
+          />
+        </EffectComposer>
+      )}
     </>
   );
 }
