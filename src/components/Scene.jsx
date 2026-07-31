@@ -9,8 +9,8 @@ import { LightEmpty } from './LightEmpty';
 import { CameraEmpty } from './CameraEmpty';
 import { MouseTarget } from './MouseTarget';
 
-const environmentPath = 'public/models/modular_environment.glb';
-const animatedModelPath = 'public/models/personnage1.glb';
+const environmentPath = '/models/modular_environment.glb';
+const animatedModelPath = '/models/personnage1.glb';
 const DEG2RAD = Math.PI / 180;
 
 function PreloadModels() {
