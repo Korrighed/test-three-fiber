@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
 
 export function AnimatedModel({ path, position = [0, 0, 0], scale = 1, onClicked }) {
@@ -6,18 +6,18 @@ export function AnimatedModel({ path, position = [0, 0, 0], scale = 1, onClicked
   const group = useRef(null);
   const { actions } = useAnimations(animations, group);
 
-  const playAnimation = (animationName) => {
+  const playAnimation = useCallback((animationName) => {
     if (actions[animationName]) {
       actions[animationName].reset();
       actions[animationName].play();
     }
-  };
+  }, [actions]);
 
   useEffect(() => {
     if (animations.length > 0) {
       playAnimation(animations[0].name);
     }
-  }, [animations, actions]);
+  }, [animations, playAnimation]);
 
   const handleClick = () => {
     if (onClicked) {
