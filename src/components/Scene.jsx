@@ -1,10 +1,12 @@
 import { Suspense, useState, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { useControls, folder } from 'leva';
 import { Environment } from './Environment';
 import { AnimatedModel } from './AnimatedModel';
 import { LightEmpty } from './LightEmpty';
+import { CameraEmpty } from './CameraEmpty';
+import { MouseTarget } from './MouseTarget';
 
 const environmentPath = 'public/models/modular_environment.glb';
 const animatedModelPath = 'public/models/personnage1.glb';
@@ -39,11 +41,11 @@ function Loader() {
 }
 
 function SceneContent() {
-  const { camera } = useThree();
   const {
     ePosX, ePosY, ePosZ, eScale,
     aPosX, aPosY, aPosZ, aScale,
     cPosX, cPosY, cPosZ, cFov,
+    mtPosX, mtPosY, mtPosZ, mtShowHelper,
     lPosX, lPosY, lPosZ, lRotX, lRotY, lRotZ, lWidth, lHeight, lShowHelper,
   } = useControls({
     Environment: folder({
@@ -59,10 +61,16 @@ function SceneContent() {
       aScale: { value: 100, min: 1, max: 500, step: 1 },
     }),
     Camera: folder({
-      cPosX: { value: 320, min: -500, max: 500, step: 1 },
-      cPosY: { value: 297, min: -500, max: 500, step: 1 },
-      cPosZ: { value: 363, min: -500, max: 500, step: 1 },
+      cPosX: { value: 435, min: -500, max: 500, step: 1 },
+      cPosY: { value: 284, min: -500, max: 500, step: 1 },
+      cPosZ: { value: 45, min: -500, max: 500, step: 1 },
       cFov: { value: 80, min: 10, max: 120, step: 1 },
+    }),
+    MouseTarget: folder({
+      mtPosX: { value: 52, min: -500, max: 500, step: 1 },
+      mtPosY: { value: -28, min: -500, max: 500, step: 1 },
+      mtPosZ: { value: -340, min: -500, max: 500, step: 1 },
+      mtShowHelper: { value: true },
     }),
     LightEmpty: folder({
       Position: folder({
@@ -83,15 +91,6 @@ function SceneContent() {
     }),
   });
 
-  useEffect(() => {
-    camera.position.set(cPosX, cPosY, cPosZ);
-    // three.js Camera est une API mutable par design (comme tout Object3D) ;
-    // incompatible avec react-hooks/immutability, désactivée volontairement ici.
-    // eslint-disable-next-line react-hooks/immutability
-    camera.fov = cFov;
-    camera.updateProjectionMatrix();
-  }, [cPosX, cPosY, cPosZ, cFov, camera]);
-
   return (
     <>
       <Environment path={environmentPath} position={[ePosX, ePosY, ePosZ]} scale={eScale} />
@@ -103,11 +102,13 @@ function SceneContent() {
         height={lHeight}
         showHelper={lShowHelper}
       />
+      <CameraEmpty position={[cPosX, cPosY, cPosZ]} fov={cFov} />
+      <MouseTarget position={[mtPosX, mtPosY, mtPosZ]} showHelper={mtShowHelper} />
 
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 10]} intensity={1} />
 
-      <OrbitControls />
+      <OrbitControls target={[mtPosX, mtPosY, mtPosZ]} />
     </>
   );
 }
@@ -128,7 +129,7 @@ export function Scene() {
         <div className="scene-frame">
           <PreloadModels />
           {loading && <Loader />}
-          <Canvas camera={{ position: [0, 5, 15], fov: 75 }} style={{ display: loading ? 'none' : 'block' }}>
+          <Canvas style={{ display: loading ? 'none' : 'block' }}>
             <Suspense fallback={null}>
               <SceneContent />
             </Suspense>
