@@ -2,7 +2,8 @@ import { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import { useControls, folder } from 'leva';
+import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
+import { useControls, folder, button } from 'leva';
 import { Environment } from './Environment';
 import { AnimatedModel } from './AnimatedModel';
 import { LightEmpty } from './LightEmpty';
@@ -42,14 +43,28 @@ function Loader() {
 }
 
 function SceneContent() {
+  const [dropKey, setDropKey] = useState(0);
+
   const {
     ePosX, ePosY, ePosZ, eScale,
-    aPosX, aPosY, aPosZ, aScale,
+    aScale,
     cPosX, cPosY, cPosZ, cFov,
     mtPosX, mtPosY, mtPosZ, mtShowHelper,
     lPosX, lPosY, lPosZ, lRotX, lRotY, lRotZ, lWidth, lHeight, lShowHelper,
     bEnabled, bIntensity, bLuminanceThreshold, bLuminanceSmoothing, bMipmapBlur, bRadius,
+    pDropX, pDropY, pDropZ, pGravityY, pDebug,
+    cColW, cColH, cColD, cColOffX, cColOffY, cColOffZ,
   } = useControls({
+    Physics: folder({
+      Spawn: folder({
+        pDropX: { value: -30, min: -500, max: 500, step: 1 }, // position X de depart du personnage (independante de sa position finale)
+        pDropY: { value: 401, min: -500, max: 800, step: 1 }, // position Y de depart, en hauteur pour laisser tomber le personnage
+        pDropZ: { value: -210, min: -500, max: 500, step: 1 }, // position Z de depart, decalee de la devanture pour ne pas la percuter en tombant
+      }),
+      pGravityY: { value: -1320, min: -2000, max: 0, step: 10 }, // force de gravite (echelle de la scene, pas -9.81 realiste)
+      pDebug: { value: false }, // affiche les colliders Rapier en wireframe
+      pReset: button(() => setDropKey((k) => k + 1)), // relance la chute en remontant le RigidBody du personnage
+    }),
     LightEmpty: folder({
       Position: folder({
         lPosX: { value: 172, min: -500, max: 500, step: 1 },
@@ -82,10 +97,15 @@ function SceneContent() {
       eScale: { value: 1, min: 0.1, max: 200, step: 1 },
     }),
     AnimatedModel: folder({
-      aPosX: { value: 0, min: -500, max: 500, step: 1 },
-      aPosY: { value: 28, min: -500, max: 500, step: 1 },
-      aPosZ: { value: -217, min: -500, max: 500, step: 1 },
-      aScale: { value: 100, min: 1, max: 500, step: 1 },
+      aScale: { value: 100, min: 1, max: 500, step: 1 }, // position geree par le RigidBody (Physics > Spawn)
+      Collider: folder({
+        cColW: { value: 40, min: 1, max: 300, step: 1 }, // largeur de la boite de collision (mesh de l'asset non fiable pour un hull auto)
+        cColH: { value: 90, min: 1, max: 300, step: 1 }, // hauteur de la boite de collision
+        cColD: { value: 30, min: 1, max: 300, step: 1 }, // profondeur de la boite de collision
+        cColOffX: { value: 0, min: -100, max: 100, step: 1 }, // decalage de la boite par rapport a l'origine du RigidBody
+        cColOffY: { value: 45, min: -100, max: 200, step: 1 },
+        cColOffZ: { value: 0, min: -100, max: 100, step: 1 },
+      }),
     }),
     Camera: folder({
       cPosX: { value: 435, min: -500, max: 500, step: 1 },
@@ -103,8 +123,25 @@ function SceneContent() {
 
   return (
     <>
-      <Environment path={environmentPath} position={[ePosX, ePosY, ePosZ]} scale={eScale} />
-      <AnimatedModel path={animatedModelPath} position={[aPosX, aPosY, aPosZ]} scale={aScale} />
+      <Physics gravity={[0, pGravityY, 0]} debug={pDebug}>
+        <RigidBody type="fixed" colliders="trimesh" position={[ePosX, ePosY, ePosZ]}>
+          <Environment path={environmentPath} scale={eScale} />
+        </RigidBody>
+
+        <RigidBody
+          key={dropKey}
+          type="dynamic"
+          colliders={false}
+          position={[pDropX, pDropY, pDropZ]}
+          enabledRotations={[false, false, false]}
+        >
+          <CuboidCollider
+            args={[cColW / 2, cColH / 2, cColD / 2]}
+            position={[cColOffX, cColOffY, cColOffZ]}
+          />
+          <AnimatedModel path={animatedModelPath} scale={aScale} />
+        </RigidBody>
+      </Physics>
       <LightEmpty
         position={[lPosX, lPosY, lPosZ]}
         rotation={[lRotX * DEG2RAD, lRotY * DEG2RAD, lRotZ * DEG2RAD]}
