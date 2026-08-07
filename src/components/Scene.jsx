@@ -9,15 +9,23 @@ import { AnimatedModel } from './AnimatedModel';
 import { LightEmpty } from './LightEmpty';
 import { CameraEmpty } from './CameraEmpty';
 import { MouseTarget } from './MouseTarget';
+import { SwimmingFish } from './SwimmingFish';
 
 const environmentPath = '/models/modular_environment.glb';
 const animatedModelPath = '/models/personnage1.glb';
+const fishPath = '/models/koi_fish.glb';
 const DEG2RAD = Math.PI / 180;
+
+// Reglages fixes, sortis de Leva une fois valides (Environment, Camera, MouseTarget)
+const cameraPosition = [435, 284, 45];
+const cameraFov = 80;
+const mouseTargetPosition = [52, -28, -340];
 
 function PreloadModels() {
   useEffect(() => {
     useGLTF.preload(environmentPath);
     useGLTF.preload(animatedModelPath);
+    useGLTF.preload(fishPath);
   }, []);
 
   return null;
@@ -46,14 +54,12 @@ function SceneContent() {
   const [dropKey, setDropKey] = useState(0);
 
   const {
-    ePosX, ePosY, ePosZ, eScale,
     aScale,
-    cPosX, cPosY, cPosZ, cFov,
-    mtPosX, mtPosY, mtPosZ, mtShowHelper,
     lPosX, lPosY, lPosZ, lRotX, lRotY, lRotZ, lWidth, lHeight, lShowHelper,
     bEnabled, bIntensity, bLuminanceThreshold, bLuminanceSmoothing, bMipmapBlur, bRadius,
     pDropX, pDropY, pDropZ, pGravityY, pDebug,
     cColW, cColH, cColD, cColOffX, cColOffY, cColOffZ,
+    fPosX, fPosY, fPosZ, fAxis, fAmplitude, fSpeed, fSpacing, fRotX, fRotY, fRotZ, fScale,
   } = useControls({
     Physics: folder({
       Spawn: folder({
@@ -90,12 +96,6 @@ function SceneContent() {
       bMipmapBlur: { value: false }, // flou via mipmaps (moins couteux, plus doux) vs flou gaussien classique
       bRadius: { value: 0.63, min: 0, max: 1, step: 0.01 }, // etalement/portee du flou du halo
     }),
-    Environment: folder({
-      ePosX: { value: 0, min: -500, max: 500, step: 1 },
-      ePosY: { value: 0, min: -500, max: 500, step: 1 },
-      ePosZ: { value: 0, min: -500, max: 500, step: 1 },
-      eScale: { value: 1, min: 0.1, max: 200, step: 1 },
-    }),
     AnimatedModel: folder({
       aScale: { value: 100, min: 1, max: 500, step: 1 }, // position geree par le RigidBody (Physics > Spawn)
       Collider: folder({
@@ -107,25 +107,28 @@ function SceneContent() {
         cColOffZ: { value: 0, min: -100, max: 100, step: 1 },
       }),
     }),
-    Camera: folder({
-      cPosX: { value: 435, min: -500, max: 500, step: 1 },
-      cPosY: { value: 284, min: -500, max: 500, step: 1 },
-      cPosZ: { value: 45, min: -500, max: 500, step: 1 },
-      cFov: { value: 80, min: 10, max: 120, step: 1 },
-    }),
-    MouseTarget: folder({
-      mtPosX: { value: 52, min: -500, max: 500, step: 1 },
-      mtPosY: { value: -28, min: -500, max: 500, step: 1 },
-      mtPosZ: { value: -340, min: -500, max: 500, step: 1 },
-      mtShowHelper: { value: true },
+    Fish: folder({
+      fPosX: { value: 14, min: -500, max: 500, step: 1 }, // centre du banc, point autour duquel les poissons se deplacent
+      fPosY: { value: 290, min: -500, max: 500, step: 1 },
+      fPosZ: { value: 37, min: -500, max: 500, step: 1 },
+      fAxis: { value: 'x', options: ['x', 'y', 'z'] }, // axe le long duquel les poissons avancent
+      fAmplitude: { value: 400, min: 0, max: 400, step: 1 }, // demi-portee du trajet (distance totale = fAmplitude * 2)
+      fSpeed: { value: 96, min: 0, max: 200, step: 1 }, // vitesse en unites/seconde (avancement continu, pas une oscillation)
+      fSpacing: { value: 53, min: 0, max: 800, step: 1 }, // decalage de depart entre les poissons du banc, en unites de distance (evite qu'ils se chevauchent)
+      Rotation: folder({
+        fRotX: { value: 3, min: -180, max: 180, step: 1 }, // corrige l'orientation de l'asset (son axe avant ne correspond pas forcement a l'axe de deplacement)
+        fRotY: { value: -12, min: -180, max: 180, step: 1 },
+        fRotZ: { value: 0, min: -180, max: 180, step: 1 },
+      }),
+      fScale: { value: 20, min: 1, max: 200, step: 1 },
     }),
   });
 
   return (
     <>
       <Physics gravity={[0, pGravityY, 0]} debug={pDebug}>
-        <RigidBody type="fixed" colliders="trimesh" position={[ePosX, ePosY, ePosZ]}>
-          <Environment path={environmentPath} scale={eScale} />
+        <RigidBody type="fixed" colliders="trimesh">
+          <Environment path={environmentPath} />
         </RigidBody>
 
         <RigidBody
@@ -149,13 +152,44 @@ function SceneContent() {
         height={lHeight}
         showHelper={lShowHelper}
       />
-      <CameraEmpty position={[cPosX, cPosY, cPosZ]} fov={cFov} />
-      <MouseTarget position={[mtPosX, mtPosY, mtPosZ]} showHelper={mtShowHelper} />
+      <CameraEmpty position={cameraPosition} fov={cameraFov} />
+      <MouseTarget position={mouseTargetPosition} />
+
+      <SwimmingFish
+        path={fishPath}
+        center={[fPosX, fPosY, fPosZ]}
+        axis={fAxis}
+        amplitude={fAmplitude}
+        speed={fSpeed}
+        phase={0}
+        rotation={[fRotX * DEG2RAD, fRotY * DEG2RAD, fRotZ * DEG2RAD]}
+        scale={fScale}
+      />
+      <SwimmingFish
+        path={fishPath}
+        center={[fPosX, fPosY + 15, fPosZ + 20]}
+        axis={fAxis}
+        amplitude={fAmplitude}
+        speed={fSpeed}
+        phase={fSpacing}
+        rotation={[fRotX * DEG2RAD, fRotY * DEG2RAD, fRotZ * DEG2RAD]}
+        scale={fScale}
+      />
+      <SwimmingFish
+        path={fishPath}
+        center={[fPosX - 15, fPosY - 10, fPosZ - 20]}
+        axis={fAxis}
+        amplitude={fAmplitude}
+        speed={fSpeed}
+        phase={fSpacing * 2}
+        rotation={[fRotX * DEG2RAD, fRotY * DEG2RAD, fRotZ * DEG2RAD]}
+        scale={fScale}
+      />
 
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 10]} intensity={1} />
 
-      <OrbitControls target={[mtPosX, mtPosY, mtPosZ]} />
+      <OrbitControls target={mouseTargetPosition} />
 
       {bEnabled && (
         <EffectComposer>
